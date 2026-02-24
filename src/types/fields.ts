@@ -3,6 +3,7 @@ export interface SelectOption {
 	readonly label: string;
 	readonly value: string;
 	readonly description?: string;
+	readonly disabled?: boolean;
 }
 
 // Base — every field has key, label, optional condition, optional skip

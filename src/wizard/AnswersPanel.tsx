@@ -3,20 +3,31 @@ import type { FieldDef } from "../types/index.ts";
 interface AnswersPanelProps {
 	fields: readonly FieldDef[];
 	answers: Record<string, string | string[]>;
+	currentKey?: string;
+	visitedKeys?: Set<string>;
 	maxHeight?: number;
 }
 
 export function AnswersPanel({
 	fields,
 	answers,
+	currentKey,
+	visitedKeys,
 	maxHeight = 8,
 }: AnswersPanelProps) {
-	const answered = fields.filter((f) => answers[f.key] !== undefined);
-	if (answered.length === 0) return null;
+	// Show fields that have been visited or have an answer
+	const visible = fields.filter(
+		(f) =>
+			answers[f.key] !== undefined ||
+			f.key === currentKey ||
+			visitedKeys?.has(f.key),
+	);
+	if (visible.length === 0) return null;
 
 	return (
 		<scrollbox
-			flexDirection="column"
+			key={currentKey}
+			flexDirection="row"
 			border={true}
 			borderStyle="rounded"
 			borderColor="#333333"
@@ -26,8 +37,10 @@ export function AnswersPanel({
 			maxHeight={maxHeight}
 			scrollY={true}
 			stickyScroll={true}
+			stickyStart="bottom"
 		>
-			{answered.map((f) => {
+			{visible.map((f) => {
+				const isCurrent = f.key === currentKey;
 				const val = answers[f.key];
 				const display = Array.isArray(val)
 					? val.length > 0
@@ -36,8 +49,17 @@ export function AnswersPanel({
 					: (val ?? "");
 				return (
 					<text key={f.key}>
-						<span fg="#888888">{f.label}: </span>
-						<b fg="#22c55e">{display}</b>
+						<span fg={isCurrent ? "#c084fc" : "#555555"}>
+							{isCurrent ? "> " : "  "}
+						</span>
+						<span fg={isCurrent ? "#c084fc" : "#888888"}>{f.label}: </span>
+						{isCurrent ? (
+							<b fg="#c084fc">{display || "..."}</b>
+						) : display ? (
+							<b fg="#22c55e">{display}</b>
+						) : (
+							<span fg="#555555">...</span>
+						)}
 					</text>
 				);
 			})}

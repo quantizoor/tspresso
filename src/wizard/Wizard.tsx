@@ -26,30 +26,65 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 	const [done, setDone] = useState(false);
 	const [hoveredOptionIndex, setHoveredOptionIndex] = useState(0);
 	const [renderKey, setRenderKey] = useState(0);
+	const [visitedKeys] = useState<Set<string>>(() => {
+		const first = fields.filter((f) => isFieldVisible(f, {}))[0];
+		return new Set(first ? [first.key] : []);
+	});
 
 	// Compute visible fields based on current answers
 	const visibleFields = fields.filter((f) => isFieldVisible(f, answers));
 	const currentField = visibleFields[stepIndex];
 
-	// Back navigation via Escape
+	const isTextField =
+		currentField?.type === "text" || currentField?.type === "textarea";
+
+	function navigateTo(index: number, fieldKey?: string) {
+		const key = fieldKey ?? visibleFields[index]?.key;
+		if (key) visitedKeys.add(key);
+		setStepIndex(index);
+		setHoveredOptionIndex(0);
+		setRenderKey((prev) => prev + 1);
+	}
+
+	// Navigation: Escape back, left/right arrows on non-text fields
 	useKeyboard((event) => {
-		if (done) return;
-		if (event.name === "escape" && stepIndex > 0) {
-			setStepIndex((prev) => prev - 1);
-			setHoveredOptionIndex(0);
-			setRenderKey((prev) => prev + 1);
+		if (done) {
+			if (event.name === "escape" || event.name === "left") {
+				setDone(false);
+				navigateTo(visibleFields.length - 1);
+			} else if (event.name === "return") {
+				onComplete?.(answers);
+			}
+			return;
+		}
+		const isBack =
+			event.name === "escape" || (!isTextField && event.name === "left");
+		const isForward = !isTextField && event.name === "right";
+
+		if (isBack && stepIndex > 0) {
+			navigateTo(stepIndex - 1);
+		} else if (isForward) {
+			const next = visibleFields[stepIndex + 1];
+			if (next && visitedKeys.has(next.key)) {
+				navigateTo(stepIndex + 1);
+			}
 		}
 	});
 
 	function advance(key: string, value: string | string[]) {
 		const next = { ...answers, [key]: value };
 
-		// Prune answers for fields that are no longer visible with the new answers
+		// Prune answers and visited keys for fields no longer visible
 		const nowVisible = fields.filter((f) => isFieldVisible(f, next));
 		const nowVisibleKeys = new Set(nowVisible.map((f) => f.key));
 		for (const k of Object.keys(next)) {
 			if (!nowVisibleKeys.has(k)) {
 				delete next[k];
+			}
+		}
+		for (const k of visitedKeys) {
+			if (!nowVisibleKeys.has(k)) {
+				visitedKeys.delete(k);
 			}
 		}
 
@@ -67,9 +102,7 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 		} else {
 			const nextField = remaining[0];
 			const nextIndex = nextField ? allVisible.indexOf(nextField) : -1;
-			setStepIndex(nextIndex >= 0 ? nextIndex : stepIndex + 1);
-			setHoveredOptionIndex(0);
-			setRenderKey((prev) => prev + 1);
+			navigateTo(nextIndex >= 0 ? nextIndex : stepIndex + 1, nextField?.key);
 		}
 	}
 
@@ -112,6 +145,9 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 						placeholder={field.placeholder ?? ""}
 						focused={true}
 						initialValue={getInitialValue(field)}
+						onChange={(value) => {
+							setAnswers((prev) => ({ ...prev, [field.key]: value }));
+						}}
 						onSubmit={(value) => {
 							if (!value && field.optional) {
 								advance(field.key, "");
@@ -145,6 +181,7 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 						options={field.options.map((o) => ({
 							label: o.label,
 							description: o.description,
+							disabled: o.disabled,
 						}))}
 						focused={true}
 						initialIndex={getInitialIndex(field)}
@@ -162,9 +199,16 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 						options={field.options.map((o) => ({
 							label: o.label,
 							description: o.description,
+							disabled: o.disabled,
 						}))}
 						focused={true}
 						initialSelected={getInitialSelected(field)}
+						onChange={(selectedIndices) => {
+							const values = selectedIndices
+								.map((i) => field.options[i]?.value)
+								.filter((v): v is string => v != null);
+							setAnswers((prev) => ({ ...prev, [field.key]: values }));
+						}}
 						onSubmit={(selectedIndices) => {
 							const values = selectedIndices
 								.map((i) => field.options[i]?.value)
@@ -183,6 +227,7 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 						options={options.map((o) => ({
 							label: o.label,
 							description: o.description,
+							disabled: o.disabled,
 						}))}
 						focused={true}
 						initialIndex={initial}
@@ -199,8 +244,20 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 		}
 	}
 
-	// Answered fields for the answers panel (all visible fields before current step)
-	const answeredFields = visibleFields.slice(0, stepIndex);
+	const canGoBack = stepIndex > 0;
+	const nextStepField = visibleFields[stepIndex + 1];
+	const canGoForward =
+		!done && !!nextStepField && visitedKeys.has(nextStepField.key);
+
+	function goBack() {
+		if (!canGoBack) return;
+		navigateTo(stepIndex - 1);
+	}
+
+	function goForward() {
+		if (!canGoForward) return;
+		navigateTo(stepIndex + 1);
+	}
 
 	// Inner width of the main container: outer padding(1*2) + border(2) + inner padding(1*2) = 6
 	const innerWidth = dimensions.width - 6;
@@ -235,13 +292,15 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 				{!done && currentField && (
 					<box flexDirection="column" flexGrow={1}>
 						{/* Panel 1: Answers (scrollable, never shrinks) */}
-						{answeredFields.length > 0 && (
+						{visibleFields.length > 1 && (
 							<box marginBottom={1} flexShrink={0}>
 								<AnswersPanel
-									fields={answeredFields}
+									fields={visibleFields}
 									answers={answers}
+									currentKey={currentField?.key}
+									visitedKeys={visitedKeys}
 									maxHeight={Math.min(
-										answeredFields.length + 2,
+										visibleFields.length + 2,
 										Math.floor(dimensions.height / 4),
 									)}
 								/>
@@ -291,6 +350,10 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 								currentField={currentField}
 								stepIndex={stepIndex}
 								totalSteps={visibleFields.length}
+								canGoBack={canGoBack}
+								canGoForward={canGoForward}
+								onPrevious={goBack}
+								onNext={goForward}
 							/>
 						</box>
 					</box>
@@ -324,10 +387,27 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 								);
 							})}
 						</box>
-						<text fg="#555555">
-							{"  Press "}
-							<b fg="#dddddd">ctrl+c</b>
-							{" to exit"}
+						<box flexDirection="row" gap={3} marginTop={1}>
+							{/* biome-ignore lint/a11y/noStaticElementInteractions: TUI click handler */}
+							<box
+								onMouseUp={() => {
+									setDone(false);
+									navigateTo(visibleFields.length - 1);
+								}}
+							>
+								<text fg="#c084fc" attributes={1}>
+									{"\u2190 Go Back"}
+								</text>
+							</box>
+							{/* biome-ignore lint/a11y/noStaticElementInteractions: TUI click handler */}
+							<box onMouseUp={() => onComplete?.(answers)}>
+								<text fg="#22c55e" attributes={1}>
+									{"Confirm (Enter) \u2713"}
+								</text>
+							</box>
+						</box>
+						<text fg="#444444">
+							{"  Esc go back  \u2502  Enter confirm  \u2502  Ctrl+C exit"}
 						</text>
 					</box>
 				)}

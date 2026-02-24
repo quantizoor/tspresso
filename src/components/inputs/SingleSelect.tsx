@@ -4,6 +4,7 @@ import { useState } from "react";
 interface SingleSelectOption {
 	label: string;
 	description?: string;
+	disabled?: boolean;
 }
 
 interface SingleSelectProps {
@@ -25,25 +26,34 @@ export function SingleSelect({
 }: SingleSelectProps) {
 	const [selectedIndex, setSelectedIndex] = useState(initialIndex);
 
+	function findNextEnabled(from: number, direction: 1 | -1): number {
+		const len = options.length;
+		for (let i = 1; i <= len; i++) {
+			const idx = (from + direction * i + len) % len;
+			if (!options[idx]?.disabled) return idx;
+		}
+		return from; // all disabled, don't move
+	}
+
 	useKeyboard((event) => {
 		if (!focused) return;
 		if (event.name === "up" || event.name === "k") {
 			setSelectedIndex((prev) => {
-				const next = prev > 0 ? prev - 1 : options.length - 1;
+				const next = findNextEnabled(prev, -1);
 				const opt = options[next];
 				if (opt) onHighlight?.(next, opt);
 				return next;
 			});
 		} else if (event.name === "down" || event.name === "j") {
 			setSelectedIndex((prev) => {
-				const next = prev < options.length - 1 ? prev + 1 : 0;
+				const next = findNextEnabled(prev, 1);
 				const opt = options[next];
 				if (opt) onHighlight?.(next, opt);
 				return next;
 			});
 		} else if (event.name === "return") {
 			const option = options[selectedIndex];
-			if (option) onSelect?.(selectedIndex, option);
+			if (option && !option.disabled) onSelect?.(selectedIndex, option);
 		}
 	});
 
@@ -64,6 +74,14 @@ export function SingleSelect({
 			>
 				{options.map((option, i) => {
 					const isSelected = i === selectedIndex;
+					if (option.disabled) {
+						return (
+							<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
+								<text fg="#444444"> </text>
+								<text fg="#444444">{option.label} (coming soon)</text>
+							</box>
+						);
+					}
 					return (
 						<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
 							<text fg={isSelected && focused ? "#c084fc" : "#555555"}>

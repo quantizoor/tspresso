@@ -77,6 +77,12 @@ const fields = [
 				value: "docker",
 				description: "Container deployment",
 			},
+			{
+				label: "Storybook",
+				value: "storybook",
+				description: "Component explorer",
+				disabled: true,
+			},
 		],
 	},
 	{

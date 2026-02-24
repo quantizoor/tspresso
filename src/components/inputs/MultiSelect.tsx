@@ -4,6 +4,7 @@ import { useState } from "react";
 interface MultiSelectOption {
 	label: string;
 	description?: string;
+	disabled?: boolean;
 }
 
 interface MultiSelectProps {
@@ -28,13 +29,23 @@ export function MultiSelect({
 		new Set(initialSelected),
 	);
 
+	function findNextEnabled(from: number, direction: 1 | -1): number {
+		const len = options.length;
+		for (let i = 1; i <= len; i++) {
+			const idx = (from + direction * i + len) % len;
+			if (!options[idx]?.disabled) return idx;
+		}
+		return from; // all disabled, don't move
+	}
+
 	useKeyboard((event) => {
 		if (!focused) return;
 		if (event.name === "up" || event.name === "k") {
-			setCursorIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
+			setCursorIndex((prev) => findNextEnabled(prev, -1));
 		} else if (event.name === "down" || event.name === "j") {
-			setCursorIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
+			setCursorIndex((prev) => findNextEnabled(prev, 1));
 		} else if (event.name === "space") {
+			if (options[cursorIndex]?.disabled) return;
 			setSelected((prev) => {
 				const next = new Set(prev);
 				if (next.has(cursorIndex)) {
@@ -47,13 +58,20 @@ export function MultiSelect({
 			});
 		} else if (event.name === "a") {
 			setSelected((prev) => {
-				if (prev.size === options.length) {
-					onChange?.([]);
-					return new Set();
+				const enabledIndices = options
+					.map((o, i) => (!o.disabled ? i : -1))
+					.filter((i) => i >= 0);
+				const allEnabled = enabledIndices.every((i) => prev.has(i));
+				if (allEnabled) {
+					const next = new Set(prev);
+					for (const i of enabledIndices) next.delete(i);
+					onChange?.([...next].sort());
+					return next;
 				}
-				const all = new Set(options.map((_, i) => i));
-				onChange?.([...all].sort());
-				return all;
+				const next = new Set(prev);
+				for (const i of enabledIndices) next.add(i);
+				onChange?.([...next].sort());
+				return next;
 			});
 		} else if (event.name === "return") {
 			onSubmit?.([...selected].sort());
@@ -80,6 +98,15 @@ export function MultiSelect({
 				{options.map((option, i) => {
 					const isAtCursor = i === cursorIndex;
 					const isChecked = selected.has(i);
+					if (option.disabled) {
+						return (
+							<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
+								<text fg="#444444"> </text>
+								<text fg="#444444">{"[-]"}</text>
+								<text fg="#444444">{option.label} (coming soon)</text>
+							</box>
+						);
+					}
 					return (
 						<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
 							<text fg={isAtCursor && focused ? "#c084fc" : "#555555"}>
