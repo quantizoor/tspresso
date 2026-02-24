@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run src/main.tsx",
+    "dev": "bun --silent src/main.tsx",
     "build": "bun run scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "biome check",
