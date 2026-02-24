@@ -8,9 +8,6 @@
 	"cpu": [
 		"x64"
 	],
-	"bin": {
-		"tspresso": "bin/tspresso.exe"
-	},
 	"files": [
 		"bin"
 	],
