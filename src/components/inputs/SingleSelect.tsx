@@ -10,23 +10,37 @@ interface SingleSelectProps {
 	label: string;
 	options: SingleSelectOption[];
 	focused?: boolean;
+	initialIndex?: number;
 	onSelect?: (index: number, option: SingleSelectOption) => void;
+	onHighlight?: (index: number, option: SingleSelectOption) => void;
 }
 
 export function SingleSelect({
 	label,
 	options,
 	focused = false,
+	initialIndex = 0,
 	onSelect,
+	onHighlight,
 }: SingleSelectProps) {
-	const [selectedIndex, setSelectedIndex] = useState(0);
+	const [selectedIndex, setSelectedIndex] = useState(initialIndex);
 
 	useKeyboard((event) => {
 		if (!focused) return;
 		if (event.name === "up" || event.name === "k") {
-			setSelectedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1));
+			setSelectedIndex((prev) => {
+				const next = prev > 0 ? prev - 1 : options.length - 1;
+				const opt = options[next];
+				if (opt) onHighlight?.(next, opt);
+				return next;
+			});
 		} else if (event.name === "down" || event.name === "j") {
-			setSelectedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0));
+			setSelectedIndex((prev) => {
+				const next = prev < options.length - 1 ? prev + 1 : 0;
+				const opt = options[next];
+				if (opt) onHighlight?.(next, opt);
+				return next;
+			});
 		} else if (event.name === "return") {
 			const option = options[selectedIndex];
 			if (option) onSelect?.(selectedIndex, option);

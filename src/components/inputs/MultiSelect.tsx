@@ -10,6 +10,7 @@ interface MultiSelectProps {
 	label: string;
 	options: MultiSelectOption[];
 	focused?: boolean;
+	initialSelected?: number[];
 	onSubmit?: (selected: number[]) => void;
 	onChange?: (selected: number[]) => void;
 }
@@ -18,11 +19,14 @@ export function MultiSelect({
 	label,
 	options,
 	focused = false,
+	initialSelected = [],
 	onSubmit,
 	onChange,
 }: MultiSelectProps) {
 	const [cursorIndex, setCursorIndex] = useState(0);
-	const [selected, setSelected] = useState<Set<number>>(new Set());
+	const [selected, setSelected] = useState<Set<number>>(
+		new Set(initialSelected),
+	);
 
 	useKeyboard((event) => {
 		if (!focused) return;

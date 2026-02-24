@@ -28,10 +28,15 @@ export interface MultiSelectField extends BaseField {
 	readonly options: readonly SelectOption[];
 }
 
+// Template option with optional preview content
+export interface TemplateOption extends SelectOption {
+	readonly content?: string;
+}
+
 // Single-select with persistable custom options
 export interface TemplateField extends BaseField {
 	readonly type: "template";
-	readonly options: readonly SelectOption[];
+	readonly options: readonly TemplateOption[];
 	readonly storeName: string;
 }
 

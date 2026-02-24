@@ -5,6 +5,7 @@ export type {
 	SelectField,
 	SelectOption,
 	TemplateField,
+	TemplateOption,
 	TextAreaField,
 	TextField,
 } from "./fields.ts";

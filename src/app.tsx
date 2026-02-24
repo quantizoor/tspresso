@@ -111,8 +111,17 @@ const fields = [
 		key: "readme",
 		label: "README template",
 		options: [
-			{ label: "Minimal", value: "minimal" },
-			{ label: "Detailed", value: "detailed" },
+			{
+				label: "Minimal",
+				value: "minimal",
+				content: "# {{name}}\n\n{{description}}",
+			},
+			{
+				label: "Detailed",
+				value: "detailed",
+				content:
+					"# {{name}}\n\n## Overview\n{{description}}\n\n## Getting Started\n\n```bash\nnpm install\nnpm run dev\n```\n\n## License\nMIT",
+			},
 		],
 		storeName: "readme-templates",
 	},

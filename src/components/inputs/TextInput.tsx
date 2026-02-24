@@ -5,6 +5,7 @@ interface TextInputProps {
 	placeholder?: string;
 	focused?: boolean;
 	maxLength?: number;
+	initialValue?: string;
 	onSubmit?: (value: string) => void;
 	onChange?: (value: string) => void;
 }
@@ -14,10 +15,11 @@ export function TextInput({
 	placeholder = "",
 	focused = false,
 	maxLength,
+	initialValue = "",
 	onSubmit,
 	onChange,
 }: TextInputProps) {
-	const [value, setValue] = useState("");
+	const [value, setValue] = useState(initialValue);
 
 	function handleChange(v: string) {
 		setValue(v);
