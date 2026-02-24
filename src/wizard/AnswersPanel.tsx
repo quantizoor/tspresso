@@ -1,3 +1,4 @@
+import { colors } from "../styles/colors.ts";
 import type { FieldDef } from "../types/index.ts";
 
 interface AnswersPanelProps {
@@ -30,7 +31,7 @@ export function AnswersPanel({
 			flexDirection="row"
 			border={true}
 			borderStyle="rounded"
-			borderColor="#333333"
+			borderColor={colors.border}
 			title=" Answers "
 			paddingX={1}
 			width="100%"
@@ -49,16 +50,18 @@ export function AnswersPanel({
 					: (val ?? "");
 				return (
 					<text key={f.key}>
-						<span fg={isCurrent ? "#c084fc" : "#555555"}>
+						<span fg={isCurrent ? colors.accent : colors.hint}>
 							{isCurrent ? "> " : "  "}
 						</span>
-						<span fg={isCurrent ? "#c084fc" : "#888888"}>{f.label}: </span>
+						<span fg={isCurrent ? colors.accent : colors.label}>
+							{f.label}:{" "}
+						</span>
 						{isCurrent ? (
-							<b fg="#c084fc">{display || "..."}</b>
+							<b fg={colors.accent}>{display || "..."}</b>
 						) : display ? (
-							<b fg="#22c55e">{display}</b>
+							<b fg={colors.success}>{display}</b>
 						) : (
-							<span fg="#555555">...</span>
+							<span fg={colors.hint}>...</span>
 						)}
 					</text>
 				);

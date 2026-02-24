@@ -1,14 +1,10 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { useState } from "react";
-import {
-	MultiSelect,
-	SingleSelect,
-	TextArea,
-	TextInput,
-} from "../components/index.ts";
+import { colors } from "../styles/colors.ts";
 import type { FieldDef, TemplateField } from "../types/index.ts";
-import { getTemplateOptions, isFieldVisible } from "../utils/index.ts";
+import { isFieldVisible } from "../utils/index.ts";
 import { AnswersPanel } from "./AnswersPanel.tsx";
+import { FieldRenderer } from "./FieldRenderer.tsx";
 import { NavigationHints } from "./NavigationHints.tsx";
 import { TemplatePreview } from "./TemplatePreview.tsx";
 
@@ -25,8 +21,8 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 	const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
 	const [done, setDone] = useState(false);
 	const [hoveredOptionIndex, setHoveredOptionIndex] = useState(0);
-	const [renderKey, setRenderKey] = useState(0);
-	const [visitedKeys] = useState<Set<string>>(() => {
+	const [fieldMountKey, setFieldMountKey] = useState(0);
+	const [visitedKeys, setVisitedKeys] = useState<Set<string>>(() => {
 		const first = fields.filter((f) => isFieldVisible(f, {}))[0];
 		return new Set(first ? [first.key] : []);
 	});
@@ -40,10 +36,10 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 
 	function navigateTo(index: number, fieldKey?: string) {
 		const key = fieldKey ?? visibleFields[index]?.key;
-		if (key) visitedKeys.add(key);
+		if (key) setVisitedKeys((prev) => new Set(prev).add(key));
 		setStepIndex(index);
 		setHoveredOptionIndex(0);
-		setRenderKey((prev) => prev + 1);
+		setFieldMountKey((prev) => prev + 1);
 	}
 
 	// Navigation: Escape back, left/right arrows on non-text fields
@@ -71,30 +67,39 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 		}
 	});
 
-	function advance(key: string, value: string | string[]) {
+	function submitFieldAnswer(key: string, value: string | string[]) {
 		const next = { ...answers, [key]: value };
 
-		// Prune answers and visited keys for fields no longer visible
-		const nowVisible = fields.filter((f) => isFieldVisible(f, next));
-		const nowVisibleKeys = new Set(nowVisible.map((f) => f.key));
+		// Compute new visible fields based on updated answers
+		const allVisible = fields.filter((f) => isFieldVisible(f, next));
+		const allVisibleKeys = new Set(allVisible.map((f) => f.key));
+
+		// Prune answers for fields no longer visible
 		for (const k of Object.keys(next)) {
-			if (!nowVisibleKeys.has(k)) {
+			if (!allVisibleKeys.has(k)) {
 				delete next[k];
 			}
 		}
-		for (const k of visitedKeys) {
-			if (!nowVisibleKeys.has(k)) {
-				visitedKeys.delete(k);
+
+		// Clear visited keys for fields after the current one (path may have changed)
+		const currentPos = allVisible.findIndex((f) => f.key === key);
+		const keysUpToCurrent = new Set(
+			allVisible.slice(0, currentPos + 1).map((f) => f.key),
+		);
+		setVisitedKeys((prev) => {
+			const updated = new Set<string>();
+			for (const k of prev) {
+				if (keysUpToCurrent.has(k)) {
+					updated.add(k);
+				}
 			}
-		}
+			return updated;
+		});
 
 		setAnswers(next);
 
 		// Find the next visible field after this one
-		const allVisible = fields.filter((f) => isFieldVisible(f, next));
-		const remaining = allVisible.filter(
-			(f) => !allVisible.slice(0, stepIndex + 1).includes(f),
-		);
+		const remaining = allVisible.slice(currentPos + 1);
 
 		if (remaining.length === 0) {
 			setDone(true);
@@ -102,145 +107,7 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 		} else {
 			const nextField = remaining[0];
 			const nextIndex = nextField ? allVisible.indexOf(nextField) : -1;
-			navigateTo(nextIndex >= 0 ? nextIndex : stepIndex + 1, nextField?.key);
-		}
-	}
-
-	function getInitialValue(field: FieldDef): string {
-		const val = answers[field.key];
-		if (typeof val === "string") return val;
-		return "";
-	}
-
-	function getInitialIndex(field: FieldDef): number {
-		const val = answers[field.key];
-		if (typeof val !== "string") return 0;
-
-		if (field.type === "select") {
-			const idx = field.options.findIndex((o) => o.value === val);
-			return idx >= 0 ? idx : 0;
-		}
-		if (field.type === "template") {
-			const options = getTemplateOptions(field);
-			const idx = options.findIndex((o) => o.value === val);
-			return idx >= 0 ? idx : 0;
-		}
-		return 0;
-	}
-
-	function getInitialSelected(field: FieldDef): number[] {
-		const val = answers[field.key];
-		if (!Array.isArray(val) || field.type !== "multi-select") return [];
-		return val
-			.map((v) => field.options.findIndex((o) => o.value === v))
-			.filter((i) => i >= 0);
-	}
-
-	function renderField(field: FieldDef) {
-		switch (field.type) {
-			case "text":
-				return (
-					<TextInput
-						label={field.label}
-						placeholder={field.placeholder ?? ""}
-						focused={true}
-						initialValue={getInitialValue(field)}
-						onChange={(value) => {
-							setAnswers((prev) => ({ ...prev, [field.key]: value }));
-						}}
-						onSubmit={(value) => {
-							if (!value && field.optional) {
-								advance(field.key, "");
-							} else if (value) {
-								advance(field.key, value);
-							} else if (field.defaultValue) {
-								advance(field.key, field.defaultValue);
-							}
-						}}
-					/>
-				);
-
-			case "textarea":
-				return (
-					<TextArea
-						label={field.label}
-						placeholder={field.placeholder ?? ""}
-						initialValue={getInitialValue(field) || field.defaultValue || ""}
-						focused={true}
-						height={field.height ?? Math.max(8, dimensions.height - 16)}
-						onSubmit={() => {
-							advance(field.key, field.defaultValue ?? "");
-						}}
-					/>
-				);
-
-			case "select":
-				return (
-					<SingleSelect
-						label={field.label}
-						options={field.options.map((o) => ({
-							label: o.label,
-							description: o.description,
-							disabled: o.disabled,
-						}))}
-						focused={true}
-						initialIndex={getInitialIndex(field)}
-						onSelect={(_index, option) => {
-							const match = field.options.find((o) => o.label === option.label);
-							advance(field.key, match?.value ?? option.label);
-						}}
-					/>
-				);
-
-			case "multi-select":
-				return (
-					<MultiSelect
-						label={field.label}
-						options={field.options.map((o) => ({
-							label: o.label,
-							description: o.description,
-							disabled: o.disabled,
-						}))}
-						focused={true}
-						initialSelected={getInitialSelected(field)}
-						onChange={(selectedIndices) => {
-							const values = selectedIndices
-								.map((i) => field.options[i]?.value)
-								.filter((v): v is string => v != null);
-							setAnswers((prev) => ({ ...prev, [field.key]: values }));
-						}}
-						onSubmit={(selectedIndices) => {
-							const values = selectedIndices
-								.map((i) => field.options[i]?.value)
-								.filter((v): v is string => v != null);
-							advance(field.key, values);
-						}}
-					/>
-				);
-
-			case "template": {
-				const options = getTemplateOptions(field);
-				const initial = getInitialIndex(field);
-				return (
-					<SingleSelect
-						label={field.label}
-						options={options.map((o) => ({
-							label: o.label,
-							description: o.description,
-							disabled: o.disabled,
-						}))}
-						focused={true}
-						initialIndex={initial}
-						onSelect={(_index, option) => {
-							const match = options.find((o) => o.label === option.label);
-							advance(field.key, match?.value ?? option.label);
-						}}
-						onHighlight={(index) => {
-							setHoveredOptionIndex(index);
-						}}
-					/>
-				);
-			}
+			navigateTo(nextIndex >= 0 ? nextIndex : currentPos + 1, nextField?.key);
 		}
 	}
 
@@ -274,8 +141,8 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 			{/* Title */}
 			<box marginBottom={1}>
 				<text>
-					<b fg="#c084fc">{title}</b>
-					{subtitle && <span fg="#555555">{` - ${subtitle}`}</span>}
+					<b fg={colors.accent}>{title}</b>
+					{subtitle && <span fg={colors.hint}>{` - ${subtitle}`}</span>}
 				</text>
 			</box>
 
@@ -284,7 +151,7 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 				flexDirection="column"
 				border={true}
 				borderStyle="rounded"
-				borderColor="#333333"
+				borderColor={colors.border}
 				padding={1}
 				width="100%"
 				flexGrow={1}
@@ -318,12 +185,21 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 							>
 								{/* Input (left half) */}
 								<box
-									key={renderKey}
+									key={fieldMountKey}
 									flexDirection="column"
 									width={halfWidth}
 									overflow="hidden"
 								>
-									{renderField(currentField)}
+									<FieldRenderer
+										field={currentField}
+										answers={answers}
+										terminalHeight={dimensions.height}
+										onSubmitAnswer={submitFieldAnswer}
+										onAnswerChange={(key, value) => {
+											setAnswers((prev) => ({ ...prev, [key]: value }));
+										}}
+										onHighlight={setHoveredOptionIndex}
+									/>
 								</box>
 								{/* Preview (right half, fills height) */}
 								<box flexDirection="column" width={halfWidth} overflow="hidden">
@@ -336,8 +212,17 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 						) : (
 							<>
 								{/* Input (full width for non-template fields) */}
-								<box key={renderKey} flexDirection="column">
-									{renderField(currentField)}
+								<box key={fieldMountKey} flexDirection="column">
+									<FieldRenderer
+										field={currentField}
+										answers={answers}
+										terminalHeight={dimensions.height}
+										onSubmitAnswer={submitFieldAnswer}
+										onAnswerChange={(key, value) => {
+											setAnswers((prev) => ({ ...prev, [key]: value }));
+										}}
+										onHighlight={setHoveredOptionIndex}
+									/>
 								</box>
 								{/* Spacer pushes hints to bottom */}
 								<box flexGrow={1} />
@@ -362,14 +247,14 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 				{done && (
 					<box flexDirection="column" gap={1}>
 						<text>
-							<b fg="#22c55e">{" \u2713 "}</b>
+							<b fg={colors.success}>{" \u2713 "}</b>
 							<b>{"All done!"}</b>
 						</text>
 						<box
 							flexDirection="column"
 							border={true}
 							borderStyle="rounded"
-							borderColor="#333333"
+							borderColor={colors.border}
 							paddingX={1}
 						>
 							{visibleFields.map((f) => {
@@ -381,8 +266,8 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 									: (val ?? "");
 								return (
 									<text key={f.key}>
-										<span fg="#888888">{`${f.label}: `.padEnd(20)}</span>
-										<b fg="#ffffff">{display}</b>
+										<span fg={colors.label}>{`${f.label}: `.padEnd(20)}</span>
+										<b fg={colors.textActive}>{display}</b>
 									</text>
 								);
 							})}
@@ -395,18 +280,18 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 									navigateTo(visibleFields.length - 1);
 								}}
 							>
-								<text fg="#c084fc" attributes={1}>
+								<text fg={colors.accent} attributes={1}>
 									{"\u2190 Go Back"}
 								</text>
 							</box>
 							{/* biome-ignore lint/a11y/noStaticElementInteractions: TUI click handler */}
 							<box onMouseUp={() => onComplete?.(answers)}>
-								<text fg="#22c55e" attributes={1}>
+								<text fg={colors.success} attributes={1}>
 									{"Confirm (Enter) \u2713"}
 								</text>
 							</box>
 						</box>
-						<text fg="#444444">
+						<text fg={colors.disabled}>
 							{"  Esc go back  \u2502  Enter confirm  \u2502  Ctrl+C exit"}
 						</text>
 					</box>

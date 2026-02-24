@@ -1,4 +1,5 @@
 export { getVisibleFields, isFieldVisible } from "./fields.ts";
+export { findNextEnabled } from "./navigation.ts";
 export {
 	deleteStore,
 	getDataDir,

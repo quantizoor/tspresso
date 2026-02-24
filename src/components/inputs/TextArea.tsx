@@ -1,4 +1,5 @@
 import { useKeyboard } from "@opentui/react";
+import { colors } from "../../styles/colors.ts";
 
 interface TextAreaProps {
 	label: string;
@@ -28,14 +29,14 @@ export function TextArea({
 	return (
 		<box flexDirection="column" gap={0}>
 			<text>
-				<b fg="#c084fc">{" ? "}</b>
+				<b fg={colors.accent}>{" ? "}</b>
 				<b>{label}</b>
-				<span fg="#555555">{" (ctrl+s to save)"}</span>
+				<span fg={colors.hint}>{" (ctrl+s to save)"}</span>
 			</text>
 			<box
 				border={true}
 				borderStyle="rounded"
-				borderColor={focused ? "#c084fc" : "#555555"}
+				borderColor={focused ? colors.accent : colors.hint}
 				width="100%"
 				height={height + 2}
 			>
@@ -43,21 +44,21 @@ export function TextArea({
 					focused={focused}
 					initialValue={initialValue}
 					placeholder={placeholder}
-					placeholderColor="#555555"
-					textColor={focused ? "#ffffff" : "#aaaaaa"}
-					backgroundColor={focused ? "#1a1a2e" : "#111111"}
-					focusedTextColor="#ffffff"
-					focusedBackgroundColor="#1a1a2e"
-					cursorColor="#c084fc"
-					selectionBg="#c084fc"
-					selectionFg="#ffffff"
+					placeholderColor={colors.hint}
+					textColor={focused ? colors.textActive : colors.textDim}
+					backgroundColor={focused ? colors.bgFocused : colors.bgUnfocused}
+					focusedTextColor={colors.textActive}
+					focusedBackgroundColor={colors.bgFocused}
+					cursorColor={colors.accent}
+					selectionBg={colors.accent}
+					selectionFg={colors.textActive}
 					wrapMode="word"
 					width="100%"
 					height={height}
 				/>
 			</box>
 			<box flexDirection="row" gap={2} paddingX={1}>
-				<text fg="#444444">
+				<text fg={colors.disabled}>
 					{"arrows: move | "}
 					{"shift+arrows: select | "}
 					{"ctrl+z: undo | "}

@@ -1,3 +1,4 @@
+import { colors } from "../styles/colors.ts";
 import type { TemplateField } from "../types/index.ts";
 import { getTemplateOptions, loadTemplates } from "../utils/index.ts";
 
@@ -35,7 +36,7 @@ export function TemplatePreview({
 			flexDirection="row"
 			border={true}
 			borderStyle="rounded"
-			borderColor="#333333"
+			borderColor={colors.border}
 			title=" Preview "
 			paddingX={1}
 			width="100%"
@@ -43,7 +44,7 @@ export function TemplatePreview({
 			scrollY={true}
 		>
 			{lines.map((line, i) => (
-				<text key={`${option.label}-${i}`} fg="#aaaaaa">
+				<text key={`${option.label}-${i}`} fg={colors.textDim}>
 					{line}
 				</text>
 			))}

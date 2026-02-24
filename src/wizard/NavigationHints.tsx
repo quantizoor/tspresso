@@ -1,3 +1,4 @@
+import { colors } from "../styles/colors.ts";
 import type { FieldDef } from "../types/index.ts";
 
 interface NavigationHintsProps {
@@ -56,7 +57,7 @@ export function NavigationHints({
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: TUI click handler */}
 				<box onMouseUp={canGoBack ? onPrevious : undefined}>
 					<text
-						fg={canGoBack ? "#c084fc" : "#333333"}
+						fg={canGoBack ? colors.accent : colors.border}
 						attributes={canGoBack ? 1 : 0}
 					>
 						{prevLabel}
@@ -65,18 +66,18 @@ export function NavigationHints({
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: TUI click handler */}
 				<box onMouseUp={canGoForward ? onNext : undefined}>
 					<text
-						fg={canGoForward ? "#c084fc" : "#333333"}
+						fg={canGoForward ? colors.accent : colors.border}
 						attributes={canGoForward ? 1 : 0}
 					>
 						{nextLabel}
 					</text>
 				</box>
 			</box>
-			<text fg="#555555">
+			<text fg={colors.hint}>
 				{hints.join("  \u2502  ")}
 				{"  "}
 			</text>
-			<text fg="#444444">
+			<text fg={colors.disabled}>
 				{"Step "}
 				{stepIndex + 1}
 				{" of "}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { colors } from "../../styles/colors.ts";
 
 interface TextInputProps {
 	label: string;
@@ -29,13 +30,13 @@ export function TextInput({
 	return (
 		<box flexDirection="column" gap={0}>
 			<text>
-				<b fg="#c084fc">{" ? "}</b>
+				<b fg={colors.accent}>{" ? "}</b>
 				<b>{label}</b>
 			</text>
 			<box
 				border={true}
 				borderStyle="rounded"
-				borderColor={focused ? "#c084fc" : "#555555"}
+				borderColor={focused ? colors.accent : colors.hint}
 				paddingX={1}
 				width="100%"
 			>
@@ -46,7 +47,7 @@ export function TextInput({
 					maxLength={maxLength}
 					onChange={handleChange}
 					onSubmit={(v) => onSubmit?.(v as string)}
-					textColor={focused ? "#ffffff" : "#777777"}
+					textColor={focused ? colors.textActive : colors.description}
 					width="100%"
 				/>
 			</box>

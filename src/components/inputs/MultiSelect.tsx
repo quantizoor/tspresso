@@ -1,15 +1,12 @@
 import { useKeyboard } from "@opentui/react";
 import { useState } from "react";
-
-interface MultiSelectOption {
-	label: string;
-	description?: string;
-	disabled?: boolean;
-}
+import { colors } from "../../styles/colors.ts";
+import { findNextEnabled } from "../../utils/navigation.ts";
+import type { InputOption } from "./types.ts";
 
 interface MultiSelectProps {
 	label: string;
-	options: MultiSelectOption[];
+	options: InputOption[];
 	focused?: boolean;
 	initialSelected?: number[];
 	onSubmit?: (selected: number[]) => void;
@@ -29,21 +26,12 @@ export function MultiSelect({
 		new Set(initialSelected),
 	);
 
-	function findNextEnabled(from: number, direction: 1 | -1): number {
-		const len = options.length;
-		for (let i = 1; i <= len; i++) {
-			const idx = (from + direction * i + len) % len;
-			if (!options[idx]?.disabled) return idx;
-		}
-		return from; // all disabled, don't move
-	}
-
 	useKeyboard((event) => {
 		if (!focused) return;
 		if (event.name === "up" || event.name === "k") {
-			setCursorIndex((prev) => findNextEnabled(prev, -1));
+			setCursorIndex((prev) => findNextEnabled(options, prev, -1));
 		} else if (event.name === "down" || event.name === "j") {
-			setCursorIndex((prev) => findNextEnabled(prev, 1));
+			setCursorIndex((prev) => findNextEnabled(options, prev, 1));
 		} else if (event.name === "space") {
 			if (options[cursorIndex]?.disabled) return;
 			setSelected((prev) => {
@@ -81,9 +69,9 @@ export function MultiSelect({
 	return (
 		<box flexDirection="column" gap={0}>
 			<text>
-				<b fg="#c084fc">{" ? "}</b>
+				<b fg={colors.accent}>{" ? "}</b>
 				<b>{label}</b>
-				<span fg="#555555">
+				<span fg={colors.hint}>
 					{" (space to toggle, a to toggle all, enter to confirm)"}
 				</span>
 			</text>
@@ -91,7 +79,7 @@ export function MultiSelect({
 				flexDirection="column"
 				border={true}
 				borderStyle="rounded"
-				borderColor={focused ? "#c084fc" : "#555555"}
+				borderColor={focused ? colors.accent : colors.hint}
 				paddingX={1}
 				width="100%"
 			>
@@ -101,19 +89,19 @@ export function MultiSelect({
 					if (option.disabled) {
 						return (
 							<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
-								<text fg="#444444"> </text>
-								<text fg="#444444">{"[-]"}</text>
-								<text fg="#444444">{option.label} (coming soon)</text>
+								<text fg={colors.disabled}> </text>
+								<text fg={colors.disabled}>{"[-]"}</text>
+								<text fg={colors.disabled}>{option.label} (coming soon)</text>
 							</box>
 						);
 					}
 					return (
 						<box key={`opt-${option.label}`} flexDirection="row" gap={1}>
-							<text fg={isAtCursor && focused ? "#c084fc" : "#555555"}>
+							<text fg={isAtCursor && focused ? colors.accent : colors.hint}>
 								{isAtCursor && focused ? ">" : " "}
 							</text>
 							<text
-								fg={isChecked ? "#22c55e" : "#555555"}
+								fg={isChecked ? colors.success : colors.hint}
 								attributes={isChecked ? 1 : 0}
 							>
 								{isChecked ? "[x]" : "[ ]"}
@@ -121,17 +109,21 @@ export function MultiSelect({
 							<text
 								fg={
 									isAtCursor && focused
-										? "#c084fc"
+										? isChecked
+											? colors.success
+											: colors.accent
 										: isChecked
-											? "#22c55e"
-											: "#dddddd"
+											? colors.success
+											: colors.text
 								}
 								attributes={isAtCursor && focused ? 1 : 0}
 							>
 								{option.label}
 							</text>
 							{option.description && (
-								<text fg="#777777">{` - ${option.description}`}</text>
+								<text
+									fg={colors.description}
+								>{` - ${option.description}`}</text>
 							)}
 						</box>
 					);
