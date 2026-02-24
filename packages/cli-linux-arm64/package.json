@@ -1,6 +1,6 @@
 {
 	"name": "@tspresso/cli-linux-arm64",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "tspresso binary for Linux ARM64",
 	"os": [
 		"linux"

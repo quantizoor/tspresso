@@ -1,6 +1,6 @@
 {
 	"name": "@tspresso/cli-darwin-arm64",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "tspresso binary for macOS ARM64 (Apple Silicon)",
 	"os": [
 		"darwin"
