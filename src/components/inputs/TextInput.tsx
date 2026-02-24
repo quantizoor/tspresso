@@ -1,4 +1,3 @@
-import { useKeyboard } from "@opentui/react";
 import { useState } from "react";
 
 interface TextInputProps {
@@ -19,13 +18,6 @@ export function TextInput({
 	onChange,
 }: TextInputProps) {
 	const [value, setValue] = useState("");
-
-	useKeyboard((event) => {
-		if (!focused) return;
-		if (event.name === "return") {
-			onSubmit?.(value);
-		}
-	});
 
 	function handleChange(v: string) {
 		setValue(v);
@@ -51,6 +43,7 @@ export function TextInput({
 					placeholder={placeholder}
 					maxLength={maxLength}
 					onChange={handleChange}
+					onSubmit={(v) => onSubmit?.(v as string)}
 					textColor={focused ? "#ffffff" : "#777777"}
 					width="100%"
 				/>
