@@ -5,7 +5,6 @@ import {
 	TextInput,
 } from "../components/index.ts";
 import type { FieldDef } from "../types/index.ts";
-import { getTemplateOptions } from "../utils/index.ts";
 
 interface FieldRendererProps {
 	field: FieldDef;
@@ -13,7 +12,7 @@ interface FieldRendererProps {
 	terminalHeight: number;
 	onSubmitAnswer: (key: string, value: string | string[]) => void;
 	onAnswerChange: (key: string, value: string | string[]) => void;
-	onHighlight: (index: number) => void;
+	onHighlight?: (index: number) => void;
 }
 
 function getInitialValue(
@@ -36,11 +35,6 @@ function getInitialIndex(
 		const idx = field.options.findIndex((o) => o.value === val);
 		return idx >= 0 ? idx : 0;
 	}
-	if (field.type === "template") {
-		const options = getTemplateOptions(field);
-		const idx = options.findIndex((o) => o.value === val);
-		return idx >= 0 ? idx : 0;
-	}
 	return 0;
 }
 
@@ -61,7 +55,6 @@ export function FieldRenderer({
 	terminalHeight,
 	onSubmitAnswer,
 	onAnswerChange,
-	onHighlight,
 }: FieldRendererProps) {
 	switch (field.type) {
 		case "text":
@@ -146,28 +139,8 @@ export function FieldRenderer({
 				/>
 			);
 
-		case "template": {
-			const options = getTemplateOptions(field);
-			const initial = getInitialIndex(field, answers);
-			return (
-				<SingleSelect
-					label={field.label}
-					options={options.map((o) => ({
-						label: o.label,
-						description: o.description,
-						disabled: o.disabled,
-					}))}
-					focused={true}
-					initialIndex={initial}
-					onSelect={(_index, option) => {
-						const match = options.find((o) => o.label === option.label);
-						onSubmitAnswer(field.key, match?.value ?? option.label);
-					}}
-					onHighlight={(index) => {
-						onHighlight(index);
-					}}
-				/>
-			);
-		}
+		case "template":
+			// Template fields are handled by TemplateManager in Wizard.tsx
+			return null;
 	}
 }

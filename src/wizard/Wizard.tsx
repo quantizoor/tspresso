@@ -1,12 +1,12 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { colors } from "../styles/colors.ts";
 import type { FieldDef, TemplateField } from "../types/index.ts";
 import { isFieldVisible } from "../utils/index.ts";
 import { AnswersPanel } from "./AnswersPanel.tsx";
 import { FieldRenderer } from "./FieldRenderer.tsx";
 import { NavigationHints } from "./NavigationHints.tsx";
-import { TemplatePreview } from "./TemplatePreview.tsx";
+import { TemplateManager } from "./TemplateManager.tsx";
 
 interface WizardProps {
 	readonly title: string;
@@ -20,8 +20,8 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 	const [stepIndex, setStepIndex] = useState(0);
 	const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
 	const [done, setDone] = useState(false);
-	const [hoveredOptionIndex, setHoveredOptionIndex] = useState(0);
 	const [fieldMountKey, setFieldMountKey] = useState(0);
+	const templateModeRef = useRef("browse");
 	const [visitedKeys, setVisitedKeys] = useState<Set<string>>(() => {
 		const first = fields.filter((f) => isFieldVisible(f, {}))[0];
 		return new Set(first ? [first.key] : []);
@@ -38,12 +38,19 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 		const key = fieldKey ?? visibleFields[index]?.key;
 		if (key) setVisitedKeys((prev) => new Set(prev).add(key));
 		setStepIndex(index);
-		setHoveredOptionIndex(0);
 		setFieldMountKey((prev) => prev + 1);
 	}
 
 	// Navigation: Escape back, left/right arrows on non-text fields
 	useKeyboard((event) => {
+		// Let TemplateManager handle its own keyboard when not in browse mode
+		if (
+			currentField?.type === "template" &&
+			templateModeRef.current !== "browse"
+		) {
+			return;
+		}
+
 		if (done) {
 			if (event.name === "escape" || event.name === "left") {
 				setDone(false);
@@ -136,16 +143,8 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 			flexDirection="column"
 			width={dimensions.width}
 			height={dimensions.height}
-			padding={1}
+			paddingBottom={1}
 		>
-			{/* Title */}
-			<box marginBottom={1}>
-				<text>
-					<b fg={colors.accent}>{title}</b>
-					{subtitle && <span fg={colors.hint}>{` - ${subtitle}`}</span>}
-				</text>
-			</box>
-
 			{/* Main container */}
 			<box
 				flexDirection="column"
@@ -153,8 +152,11 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 				borderStyle="rounded"
 				borderColor={colors.border}
 				padding={1}
+        paddingBottom={0}
 				width="100%"
 				flexGrow={1}
+        title="tspresso - Project Setup Wizard"
+        
 			>
 				{!done && currentField && (
 					<box flexDirection="column" flexGrow={1}>
@@ -174,41 +176,24 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 							</box>
 						)}
 
-						{/* Panel 2 + 3: Input and Preview side-by-side for template fields */}
+						{/* Template fields use TemplateManager with its own layout + hints */}
 						{currentField.type === "template" ? (
-							<box
-								flexDirection="row"
-								gap={1}
-								flexGrow={1}
-								flexShrink={1}
-								flexWrap="no-wrap"
-							>
-								{/* Input (left half) */}
-								<box
-									key={fieldMountKey}
-									flexDirection="column"
-									width={halfWidth}
-									overflow="hidden"
-								>
-									<FieldRenderer
-										field={currentField}
-										answers={answers}
-										terminalHeight={dimensions.height}
-										onSubmitAnswer={submitFieldAnswer}
-										onAnswerChange={(key, value) => {
-											setAnswers((prev) => ({ ...prev, [key]: value }));
-										}}
-										onHighlight={setHoveredOptionIndex}
-									/>
-								</box>
-								{/* Preview (right half, fills height) */}
-								<box flexDirection="column" width={halfWidth} overflow="hidden">
-									<TemplatePreview
-										field={currentField as TemplateField}
-										hoveredOptionIndex={hoveredOptionIndex}
-									/>
-								</box>
-							</box>
+							<TemplateManager
+								key={fieldMountKey}
+								field={currentField as TemplateField}
+								answers={answers}
+								halfWidth={halfWidth}
+								stepIndex={stepIndex}
+								totalSteps={visibleFields.length}
+								canGoBack={canGoBack}
+								canGoForward={canGoForward}
+								onGoBack={goBack}
+								onGoForward={goForward}
+								onSelect={(value) => submitFieldAnswer(currentField.key, value)}
+								onModeChange={(m) => {
+									templateModeRef.current = m;
+								}}
+							/>
 						) : (
 							<>
 								{/* Input (full width for non-template fields) */}
@@ -221,26 +206,24 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 										onAnswerChange={(key, value) => {
 											setAnswers((prev) => ({ ...prev, [key]: value }));
 										}}
-										onHighlight={setHoveredOptionIndex}
 									/>
 								</box>
 								{/* Spacer pushes hints to bottom */}
 								<box flexGrow={1} />
+								{/* Navigation hints + step counter (never shrinks) */}
+								<box flexShrink={0}>
+									<NavigationHints
+										currentField={currentField}
+										stepIndex={stepIndex}
+										totalSteps={visibleFields.length}
+										canGoBack={canGoBack}
+										canGoForward={canGoForward}
+										onPrevious={goBack}
+										onNext={goForward}
+									/>
+								</box>
 							</>
 						)}
-
-						{/* Navigation hints + step counter (never shrinks) */}
-						<box flexShrink={0}>
-							<NavigationHints
-								currentField={currentField}
-								stepIndex={stepIndex}
-								totalSteps={visibleFields.length}
-								canGoBack={canGoBack}
-								canGoForward={canGoForward}
-								onPrevious={goBack}
-								onNext={goForward}
-							/>
-						</box>
 					</box>
 				)}
 

@@ -1,5 +1,6 @@
+import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "../../styles/colors.ts";
 import { findNextEnabled } from "../../utils/navigation.ts";
 import type { InputOption } from "./types.ts";
@@ -25,6 +26,19 @@ export function MultiSelect({
 	const [selected, setSelected] = useState<Set<number>>(
 		new Set(initialSelected),
 	);
+	const scrollRef = useRef<ScrollBoxRenderable>(null);
+
+	useEffect(() => {
+		const sb = scrollRef.current;
+		if (!sb) return;
+		const viewportHeight = sb.viewport.height;
+		const scrollTop = sb.scrollTop;
+		if (cursorIndex < scrollTop) {
+			sb.scrollTo({ x: 0, y: cursorIndex });
+		} else if (cursorIndex >= scrollTop + viewportHeight) {
+			sb.scrollTo({ x: 0, y: cursorIndex - viewportHeight + 1 });
+		}
+	}, [cursorIndex]);
 
 	useKeyboard((event) => {
 		if (!focused) return;
@@ -68,15 +82,18 @@ export function MultiSelect({
 
 	return (
 		<box flexDirection="column" gap={0}>
-			<text>
-				<b fg={colors.accent}>{" ? "}</b>
-				<b>{label}</b>
-				<span fg={colors.hint}>
-					{" (space to toggle, a to toggle all, enter to confirm)"}
-				</span>
-			</text>
-			<box
-				flexDirection="column"
+			<box flexShrink={0}>
+				<text>
+					<b fg={colors.accent}>{" ? "}</b>
+					<b>{label}</b>
+					<span fg={colors.hint}>
+						{" (space to toggle, a to toggle all, enter to confirm)"}
+					</span>
+				</text>
+			</box>
+			<scrollbox
+				ref={scrollRef}
+				flexDirection="row"
 				border={true}
 				borderStyle="rounded"
 				borderColor={focused ? colors.accent : colors.hint}
@@ -128,7 +145,7 @@ export function MultiSelect({
 						</box>
 					);
 				})}
-			</box>
+			</scrollbox>
 		</box>
 	);
 }

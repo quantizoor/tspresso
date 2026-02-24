@@ -1,5 +1,6 @@
+import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors } from "../../styles/colors.ts";
 import { findNextEnabled } from "../../utils/navigation.ts";
 import type { InputOption } from "./types.ts";
@@ -22,6 +23,19 @@ export function SingleSelect({
 	onHighlight,
 }: SingleSelectProps) {
 	const [selectedIndex, setSelectedIndex] = useState(initialIndex);
+	const scrollRef = useRef<ScrollBoxRenderable>(null);
+
+	useEffect(() => {
+		const sb = scrollRef.current;
+		if (!sb) return;
+		const viewportHeight = sb.viewport.height;
+		const scrollTop = sb.scrollTop;
+		if (selectedIndex < scrollTop) {
+			sb.scrollTo({ x: 0, y: selectedIndex });
+		} else if (selectedIndex >= scrollTop + viewportHeight) {
+			sb.scrollTo({ x: 0, y: selectedIndex - viewportHeight + 1 });
+		}
+	}, [selectedIndex]);
 
 	useKeyboard((event) => {
 		if (!focused) return;
@@ -47,13 +61,16 @@ export function SingleSelect({
 
 	return (
 		<box flexDirection="column" gap={0}>
-			<text>
-				<b fg={colors.accent}>{" ? "}</b>
-				<b>{label}</b>
-				<span fg={colors.hint}>{" (arrow keys to move, enter to select)"}</span>
-			</text>
-			<box
-				flexDirection="column"
+			<box flexShrink={0}>
+				<text>
+					<b fg={colors.accent}>{" ? "}</b>
+					<b>{label}</b>
+					<span fg={colors.hint}>{" (arrow keys to move, enter to select)"}</span>
+				</text>
+			</box>
+			<scrollbox
+				ref={scrollRef}
+				flexDirection="row"
 				border={true}
 				borderStyle="rounded"
 				borderColor={focused ? colors.accent : colors.hint}
@@ -89,7 +106,7 @@ export function SingleSelect({
 						</box>
 					);
 				})}
-			</box>
+			</scrollbox>
 		</box>
 	);
 }
