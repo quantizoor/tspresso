@@ -1,0 +1,15 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+	"files": {
+		"includes": ["src/**", "scripts/**", "packages/**/bin/tspresso.js"],
+		"ignoreUnknown": true
+	},
+	"formatter": {
+		"indentStyle": "tab"
+	},
+	"linter": {
+		"rules": {
+			"recommended": true
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"name": "@tspresso/cli-linux-arm64",
+	"version": "0.0.0",
+	"description": "tspresso binary for Linux ARM64",
+	"os": [
+		"linux"
+	],
+	"cpu": [
+		"arm64"
+	],
+	"bin": {
+		"tspresso": "bin/tspresso"
+	},
+	"files": [
+		"bin"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"license": "MIT"
+}

@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  check:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Biome check
+        run: bun run lint
+
+      - name: TypeScript typecheck
+        run: bun run typecheck
+
+  build:
+    name: Build ${{ matrix.pkg }}
+    needs: check
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: macos-latest
+            target: bun-darwin-arm64
+            pkg: cli-darwin-arm64
+          - runner: ubuntu-latest
+            target: bun-linux-x64
+            pkg: cli-linux-x64
+          - runner: ubuntu-24.04-arm
+            target: bun-linux-arm64
+            pkg: cli-linux-arm64
+          - runner: windows-latest
+            target: bun-windows-x64
+            pkg: cli-win-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: bun run build ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.pkg }}
+          path: packages/${{ matrix.pkg }}/bin/
+
+  publish:
+    name: Publish to npm
+    needs: build
+    runs-on: ubuntu-latest
+    # TODO: After first successful publish, switch to Trusted Publishing:
+    #   1. Configure Trusted Publishing on npmjs.com for all 5 packages
+    #   2. Remove NODE_AUTH_TOKEN env blocks below
+    #   3. Add --provenance flag to npm publish commands
+    #   4. Uncomment the permissions block below
+    #   5. Delete the NPM_TOKEN secret from GitHub
+    # permissions:
+    #   contents: read
+    #   id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Place binaries into package directories
+        run: |
+          set -e
+          for pkg in cli-darwin-arm64 cli-linux-arm64 cli-linux-x64 cli-win-x64; do
+            mkdir -p "packages/$pkg/bin"
+            cp -r "artifacts/$pkg/"* "packages/$pkg/bin/"
+            chmod +x "packages/$pkg/bin/"* 2>/dev/null || true
+            echo "--- $pkg ---"
+            ls -la "packages/$pkg/bin/"
+          done
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -e
+          for pkg in cli-darwin-arm64 cli-linux-arm64 cli-linux-x64 cli-win-x64; do
+            echo "Publishing @tspresso/$pkg..."
+            npm publish "./packages/$pkg" --access public
+          done
+
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./packages/tspresso --access public

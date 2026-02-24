@@ -1,0 +1,21 @@
+{
+	"name": "@tspresso/cli-darwin-arm64",
+	"version": "0.0.0",
+	"description": "tspresso binary for macOS ARM64 (Apple Silicon)",
+	"os": [
+		"darwin"
+	],
+	"cpu": [
+		"arm64"
+	],
+	"bin": {
+		"tspresso": "bin/tspresso"
+	},
+	"files": [
+		"bin"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"license": "MIT"
+}

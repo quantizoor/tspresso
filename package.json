@@ -1,0 +1,24 @@
+{
+  "name": "tspresso-dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/main.tsx",
+    "build": "bun run scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "version": "bun run scripts/version.mjs"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.81",
+    "@opentui/react": "^0.1.81",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "typescript": "^5"
+  }
+}

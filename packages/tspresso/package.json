@@ -1,0 +1,21 @@
+{
+	"name": "tspresso",
+	"version": "0.0.0",
+	"description": "A terminal UI application built with OpenTUI",
+	"bin": {
+		"tspresso": "bin/tspresso.js"
+	},
+	"files": [
+		"bin"
+	],
+	"optionalDependencies": {
+		"@tspresso/cli-darwin-arm64": "0.0.0",
+		"@tspresso/cli-linux-arm64": "0.0.0",
+		"@tspresso/cli-linux-x64": "0.0.0",
+		"@tspresso/cli-win-x64": "0.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"license": "MIT"
+}
