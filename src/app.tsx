@@ -1,8 +1,13 @@
 import { useTerminalDimensions } from "@opentui/react";
 import { useState } from "react";
-import { MultiSelect, SingleSelect, TextInput } from "./components/index.ts";
+import {
+	MultiSelect,
+	SingleSelect,
+	TextArea,
+	TextInput,
+} from "./components/index.ts";
 
-type Step = "name" | "framework" | "features" | "done";
+type Step = "name" | "framework" | "features" | "readme" | "done";
 
 const FRAMEWORKS = [
 	{ label: "React", description: "A library for building user interfaces" },
@@ -49,6 +54,7 @@ export function App() {
 				borderColor="#333333"
 				padding={1}
 				width={Math.min(dimensions.width - 2, 72)}
+				flexGrow={1}
 			>
 				{/* Step 1: Project name */}
 				{step === "name" && (
@@ -107,8 +113,38 @@ export function App() {
 										.map((i) => FEATURES[i]?.label)
 										.filter((f): f is string => f != null),
 								);
-								setStep("done");
+								setStep("readme");
 							}}
+						/>
+					</box>
+				)}
+
+				{/* Step 4: README editor */}
+				{step === "readme" && (
+					<box flexDirection="column" gap={1}>
+						<box flexDirection="column">
+							<text fg="#555555">
+								{"  Project: "}
+								<b fg="#22c55e">{projectName}</b>
+							</text>
+							<text fg="#555555">
+								{"  Framework: "}
+								<b fg="#22c55e">{framework}</b>
+							</text>
+							<text fg="#555555">
+								{"  Features: "}
+								<b fg="#22c55e">
+									{features.length > 0 ? features.join(", ") : "none"}
+								</b>
+							</text>
+						</box>
+						<TextArea
+							label="Edit your README.md"
+							placeholder="# My Project\n\nDescribe your project here..."
+							initialValue={`# ${projectName}\n\nA ${framework} project.\n\n## Features\n\n${features.map((f) => `- ${f}`).join("\n") || "None selected."}\n`}
+							focused={true}
+							height={Math.max(8, dimensions.height - 16)}
+							onSubmit={() => setStep("done")}
 						/>
 					</box>
 				)}
