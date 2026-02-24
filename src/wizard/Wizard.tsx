@@ -15,7 +15,7 @@ interface WizardProps {
 	readonly onComplete?: (answers: Record<string, string | string[]>) => void;
 }
 
-export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
+export function Wizard({ fields, onComplete }: WizardProps) {
 	const dimensions = useTerminalDimensions();
 	const [stepIndex, setStepIndex] = useState(0);
 	const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
@@ -152,11 +152,10 @@ export function Wizard({ title, subtitle, fields, onComplete }: WizardProps) {
 				borderStyle="rounded"
 				borderColor={colors.border}
 				padding={1}
-        paddingBottom={0}
+				paddingBottom={0}
 				width="100%"
 				flexGrow={1}
-        title="tspresso - Project Setup Wizard"
-        
+				title="tspresso - Project Setup Wizard"
 			>
 				{!done && currentField && (
 					<box flexDirection="column" flexGrow={1}>

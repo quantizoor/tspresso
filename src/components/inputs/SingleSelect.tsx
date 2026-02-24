@@ -65,7 +65,9 @@ export function SingleSelect({
 				<text>
 					<b fg={colors.accent}>{" ? "}</b>
 					<b>{label}</b>
-					<span fg={colors.hint}>{" (arrow keys to move, enter to select)"}</span>
+					<span fg={colors.hint}>
+						{" (arrow keys to move, enter to select)"}
+					</span>
 				</text>
 			</box>
 			<scrollbox
